@@ -103,3 +103,10 @@ Review the changes above."""
         except (KeyError, json.JSONDecodeError) as e:
             return f"Error parsing API response: {str(e)}"
         
+    def format_review(self, reviews):
+        formatted = "## 🤖 AI Code Review\n\n"
+        for filename, review in reviews.items():
+            formatted += f"### 📄 `{filename}`\n\n{review}\n\n"
+        formatted += "---\n*Powered by AI Code Reviewer*"
+        return formatted
+        
