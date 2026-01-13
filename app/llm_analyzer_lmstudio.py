@@ -17,7 +17,7 @@ class CodeAnalyzer:
         self.chat_endpoint = f"{base_url}/chat/completions"
         print(f"LM Studio API initialized at {base_url}")
     
-    def analyze_code(self, code_diff, filename):        
+    def analyze_code(self, code_diff, filename, static_issues=None):        
         # Instruction for critical analysis
         system_prompt = """
 You are a senior software engineer performing an automated GitHub pull-request review.
@@ -55,12 +55,18 @@ Output exactly in this format:
 Be concise, precise, and technically accurate.
 """
 
+        # Add static analysis context if available
+        static_context = ""
+        if static_issues:
+            static_context = f"\n\n## Static Analysis Tools Found:\n{static_issues}\n\nreview these findings and provide additional context or explanation."
+
         user_prompt = f"""File: `{filename}`
 
 Diff:
 ----------------
 {code_diff}
 ----------------
+{static_context}
 
 Review the changes above."""
 
@@ -92,7 +98,7 @@ Review the changes above."""
             result = response.json()
             review = result['choices'][0]['message']['content'].strip()
             
-            return review[:600]  # Max 600 chars
+            return review  # Max 600 chars
             
         except requests.exceptions.ConnectionError:
             return "Error: Cannot connect to LM Studio. Make sure LM Studio is running at " + self.base_url
@@ -104,9 +110,9 @@ Review the changes above."""
             return f"Error parsing API response: {str(e)}"
         
     def format_review(self, reviews):
-        formatted = "## 🤖 AI Code Review\n\n"
+        formatted = "## AI Code Review\n\n"
         for filename, review in reviews.items():
-            formatted += f"### 📄 `{filename}`\n\n{review}\n\n"
+            formatted += f"### `{filename}`\n\n{review}\n\n"
         formatted += "---\n*Powered by AI Code Reviewer*"
         return formatted
         

@@ -21,51 +21,62 @@ class CodeAnalyzer:
         
         print("Model loaded successfully!")
     
-    def analyze_code(self, code_diff, filename):
+    def analyze_code(self, code_diff, filename, static_issues=None):
         """Analyze code changes and return concise review"""
         
         # Instruction for critical analysis
-        prompt = f"""
-You are an AI code reviewer for a GitHub pull request.
+        system_prompt = """
+You are a senior software engineer performing an automated GitHub pull-request review.
 
-You are given ONLY a code diff from `{filename}`.
-Review ONLY what changed. Do NOT assume anything about the rest of the file.
+You are given only a unified diff of code changes.
+Review ONLY the lines shown. Do NOT assume anything about the rest of the file.
+
+Your goal is to find real, concrete problems introduced by this change.
+
+Rules:
+- Never invent context that is not in the diff.
+- Never guess what surrounding code looks like.
+- If something cannot be determined, say: "Not enough context".
+- Only mention security if the diff includes user input, file I/O, network calls, or database access.
+- Do not give generic advice — every point must reference something in the diff.
+
+Output exactly in this format:
+
+### Bugs
+- Real runtime errors, logic flaws, edge cases, or incorrect behavior introduced by this change.
+
+### Code Quality
+- Readability, naming, structure, duplication, or clarity issues in the diff.
+
+### Best Practices
+- Pythonic improvements, better patterns, or performance improvements that apply to the diff.
+
+### Security
+- If applicable; otherwise write exactly: "No security issues detected."
+
+### Suggested Fix
+- If a problem exists, show a corrected version of only the changed lines.
+- If everything is fine, write exactly: "No changes needed."
+
+Be concise, precise, and technically accurate.
+"""
+
+        # Add static analysis context if available
+        static_context = ""
+        if static_issues:
+            static_context = f"\n\n## Static Analysis Tools Found:\n{static_issues}\n\nreview these findings and provide additional context or explanation."
+
+        prompt = f"""{system_prompt}
+
+File: `{filename}`
 
 Diff:
 ----------------
 {code_diff}
 ----------------
+{static_context}
 
-Your job is to identify real issues in these changes.
-
-Rules:
-- Do NOT invent missing context.
-- Do NOT mention things not visible in the diff.
-- If something cannot be determined, say "Not enough context".
-- Only mention security if the diff includes user input, files, network, or database usage.
-
-Respond in this exact format:
-
-### Bugs
-- Concrete logic or runtime issues introduced by this change.
-
-### Code Quality
-- Readability, naming, structure, or maintainability problems in the diff.
-
-### Best Practices
-- Pythonic improvements or better patterns that apply to this change.
-
-### Security
-- If applicable; otherwise write: "No security issues detected."
-
-### Suggested Fix
-- Show a corrected version of the changed lines if something is wrong.
-- Otherwise write: "No changes needed."
-
-Be concise. Be factual. Be strict.
-"""
-
-
+Review the changes above."""
 
         inputs = self.tokenizer(
             prompt, 
@@ -82,7 +93,7 @@ Be concise. Be factual. Be strict.
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=200,
+                max_new_tokens=512,
                 temperature=0.3,  
                 do_sample=True,
                 top_p=0.9,
@@ -97,11 +108,11 @@ Be concise. Be factual. Be strict.
         # Extract analysis  
         review = full_text.replace(prompt, "").strip()  
         
-        return review[:600]  # Max 600 chars
-        
+        return review
+
     def format_review(self, reviews):
-        formatted = "## 🤖 AI Code Review\n\n"
+        formatted = "## AI Code Review\n\n"
         for filename, review in reviews.items():
-            formatted += f"### 📄 `{filename}`\n\n{review}\n\n"
+            formatted += f"### `{filename}`\n\n{review}\n\n"
         formatted += "---\n*Powered by AI Code Reviewer*"
         return formatted
