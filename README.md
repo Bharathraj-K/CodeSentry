@@ -27,20 +27,26 @@ An intelligent, automated code review system that analyzes GitHub pull requests 
 
 ## 📸 Screenshots
 
-### AI Code Review Comment
-<img width="917" height="914" alt="Screenshot 2026-01-13 185945" src="https://github.com/user-attachments/assets/fd72a714-20a5-4e17-93e0-1e84b0dc2f25" />
+### 🧠 AI Code Review Comment
+![AI Code Review Comment]<img width="917" height="894" alt="Screenshot 2026-01-13 185945" src="https://github.com/user-attachments/assets/be14455c-880d-4222-b2c5-290d11844c03" />
 
-*Example of AI-generated code review posted on GitHub PR*
 
-### Terminal Output
-<img width="514" height="131" alt="Screenshot 2026-01-13 185958" src="https://github.com/user-attachments/assets/964ff81f-0a1c-4cd5-89a2-e9cc22889428" />
+*Example of an AI-generated code review posted on a GitHub pull request.*
 
-*Real-time processing logs showing analysis in action*
+---
 
-### GitHub Webhook Log
-<img width="783" height="343" alt="Screenshot 2026-01-13 190028" src="https://github.com/user-attachments/assets/6e302f39-535a-4b0e-9611-dc7536817a05" />
+### 🖥️ Terminal Output
+![Terminal Output](https://github.com/user-attachments/assets/964ff81f-0a1c-4cd5-89a2-e9cc22889428)
 
-*Webhook delivery and response status*
+*Real-time processing logs showing the analysis pipeline running.*
+
+---
+
+### 🔗 GitHub Webhook Log
+![GitHub Webhook Log](https://github.com/user-attachments/assets/6e302f39-535a-4b0e-9611-dc7536817a05)
+
+*Webhook delivery and response status from GitHub.*
+
 
 ## 🚀 Setup
 
