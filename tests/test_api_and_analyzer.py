@@ -20,3 +20,5 @@ for file in files:
 comment = analyzer.format_review(reviews)
 
 print(comment)
+
+#api.post_comment(repo, pr_number, comment)
