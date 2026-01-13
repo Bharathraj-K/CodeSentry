@@ -92,7 +92,7 @@ Review the changes above."""
             result = response.json()
             review = result['choices'][0]['message']['content'].strip()
             
-            return review[:600]  # Max 600 chars
+            return review  # Max 600 chars
             
         except requests.exceptions.ConnectionError:
             return "Error: Cannot connect to LM Studio. Make sure LM Studio is running at " + self.base_url

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 import hmac
 import hashlib
 from .github_api import GitHubAPI
@@ -17,16 +17,57 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+async def process_review(repo: str, pr_number: int):
+    """Process PR review in background"""
+    try:
+        print(f"🔍 Starting review for PR #{pr_number} in {repo}")
+        
+        # Get changed files
+        files = github_api.get_pr_files(repo, pr_number)
+        print(f"📄 Found {len(files)} changed files")
+        
+        # Analyze each file
+        reviews = {}
+        for file in files[:5]:  # Limit to 5 files
+            filename = file["filename"]
+            patch = file.get("patch", "")
+            
+            if patch:
+                print(f"🤖 Analyzing {filename}...")
+                review = analyzer.analyze_code(patch, filename)
+                reviews[filename] = review
+        
+        # Post review
+        if reviews:
+            print(f"💬 Posting review with {len(reviews)} files...")
+            comment = analyzer.format_review(reviews)
+            github_api.post_comment(repo, pr_number, comment)
+            print("✅ Review posted successfully!")
+        else:
+            print("⚠️ No files to review")
+            
+    except Exception as e:
+        print(f"❌ Error processing review: {e}")
+
 @app.post("/webhook")
-async def handle_webhook(request: Request):
+async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
     """Handle GitHub webhook events"""
+    
+    # Read body once (can't read twice!)
+    body = await request.body()
     
     # Verify webhook signature (security)
     signature = request.headers.get("X-Hub-Signature-256")
-    if not verify_signature(await request.body(), signature):
+    if not verify_signature(body, signature):
         raise HTTPException(status_code=403, detail="Invalid signature")
     
-    payload = await request.json()
+    # Parse JSON from the already-read body
+    import json
+    payload = json.loads(body)
+    
+    # Handle ping event (GitHub webhook test)
+    if "zen" in payload:
+        return {"message": "pong", "status": "healthy"}
     
     # Only handle PR events
     if "pull_request" not in payload:
@@ -43,25 +84,11 @@ async def handle_webhook(request: Request):
     repo = payload["repository"]["full_name"]
     pr_number = pr["number"]
     
-    # Get changed files
-    files = github_api.get_pr_files(repo, pr_number)
+    # Process review in background (don't block webhook response)
+    background_tasks.add_task(process_review, repo, pr_number)
     
-    # Analyze each file
-    reviews = {}
-    for file in files[:5]:  # Limit to 5 files for now
-        filename = file["filename"]
-        patch = file.get("patch", "")
-        
-        if patch:  # Only review files with changes
-            review = analyzer.analyze_code(patch, filename)
-            reviews[filename] = review
-    
-    # Post review
-    if reviews:
-        comment = analyzer.format_review(reviews)
-        github_api.post_comment(repo, pr_number, comment)
-    
-    return {"message": "Review posted", "files_reviewed": len(reviews)}
+    # Return immediately (GitHub won't timeout!)
+    return {"message": "Review queued", "pr": pr_number, "repo": repo}
 
 def verify_signature(payload_body, signature_header):
     """Verify GitHub webhook signature"""
